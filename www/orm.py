@@ -11,11 +11,11 @@ def log(sql, args=()):
     logging.info("SQL: {} ARGS: {}".format(sql, args))
 
 
-async def create_pool(loop, **kwargs):
+async def create_pool(loop, database: str):
     logging.info("create database connection pool...")
     global _pool
     # 需要安装SQLite ODBC驱动 http://www.ch-werner.de/sqliteodbc/
-    _pool = await aioodbc.create_pool(dsn='DRIVER={SQLite3 ODBC Driver};Database=../database/sqlite.db', loop=loop)
+    _pool = await aioodbc.create_pool(dsn="DRIVER={SQLite3 ODBC Driver};Database=" + database, loop=loop)
 
 
 async def select(sql, args, size=None):
@@ -31,7 +31,7 @@ async def select(sql, args, size=None):
 async def execute(sql, args):
     log(sql, args)
     async with _pool.acquire() as conn:
-        await conn.begin()
+        # await conn.begin()
         try:
             async with conn.cursor() as cur:
                 await cur.execute(sql, args)
@@ -141,10 +141,10 @@ class Model(dict, metaclass=ModelMetaclass):
         self[key] = value
 
     def get_value(self, key):
-        return getattr(self, key)
+        return getattr(self, key, None)
 
     def get_value_or_default(self, key):
-        value = getattr(self, key)
+        value = getattr(self, key, None)
         if value is None:
             field = self.__mapping__[key]
             if field.default is not None:
@@ -185,7 +185,7 @@ class Model(dict, metaclass=ModelMetaclass):
         return [cls(**v) for v in ret]
 
     @classmethod
-    async def findNumber(cls, select_field, where: str = None, args: list = None):
+    async def find_number(cls, select_field, where: str = None, args: list = None):
         """find number by select and where"""
         sql = ["select {} _num_ from `{}`".format(select_field, cls.__table__)]
         if where:
@@ -200,7 +200,7 @@ class Model(dict, metaclass=ModelMetaclass):
         ret = await select("{} where `{}`=?".format(cls.__select__, cls.__primary_key__), [primary_key], 1)
         return cls(**ret[0]) if len(ret) else None
 
-    async def save(self):
+    async def save_data(self):
         args = [self.get_value_or_default(field) for field in self.__fields__]
         args.append(self.get_value_or_default(self.__primary_key__))
         rows = await execute(self.__insert__, args)
@@ -208,7 +208,7 @@ class Model(dict, metaclass=ModelMetaclass):
             logging.warning("failed to insert record: affected rows: {} \n\tsql: {}\n\targs: {}",
                             rows, self.__insert__, args)
 
-    async def update(self):
+    async def update_data(self):
         args = [self.get_value_or_default(field) for field in self.__fields__]
         args.append(self.get_value_or_default(self.__primary_key__))
         rows = await execute(self.__update__, args)
@@ -216,7 +216,7 @@ class Model(dict, metaclass=ModelMetaclass):
             logging.warning("failed to update by primary key: affected rows: {} \n\tsql: {}\n\targs: {}",
                             rows, self.__update__, args)
 
-    async def remove(self):
+    async def remove_data(self):
         args = [self.getValue(self.__primary_key__)]
         rows = await execute(self.__delete__, args)
         if rows != 1:
