@@ -107,7 +107,7 @@ class RequestHandler:
                     params = await request.post()
                     kwargs = dict(**params)
                 else:
-                    return web.HTTPBadRequest("Unsupported Content-Type: " + request.content_type)
+                    return web.HTTPBadRequest("Unsupported Content-Type: {}".format(request.content_type))
             elif request.method == "GET":
                 query_string = request.query_string
                 if query_string:
@@ -120,7 +120,7 @@ class RequestHandler:
                 kwargs = {name: kwargs[name] for name in self._named_kwargs if name in kwargs}
             for k, v in request.match_info.items():
                 if k in kwargs:
-                    logging.warning("Duplicate arg name in named arg and kwargs: " + k)
+                    logging.warning("Duplicate arg name in named arg and kwargs: {}".format(k))
                 kwargs[k] = v
         if self._has_request_arg:
             kwargs["request"] = request
@@ -129,7 +129,7 @@ class RequestHandler:
         if self._required_kwargs:
             for name in self._required_kwargs:
                 if name not in kwargs:
-                    return web.HTTPBadRequest("Missing argument: " + name)
+                    return web.HTTPBadRequest("Missing argument: {}".format(name))
         logging.info("call with args: {}" + str(kwargs))
         try:
             return await self._func(**kwargs)
@@ -151,7 +151,7 @@ def add_route(app, func):
     if not asyncio.iscoroutinefunction(func) and not inspect.isgeneratorfunction(func):
         func = asyncio.coroutine(func)
     logging.info("add route {} {} => {}({})".format(
-            method, path, func.__name__, ", ".join(inspect.signature(func).parameters.keys())))
+            method, path, getattr(func, "__name__", "unknown"), ", ".join(inspect.signature(func).parameters.keys())))
     app.router.add_route(method, path, RequestHandler(app, func))
 
 

@@ -10,6 +10,6 @@ loop = asyncio.get_event_loop()
 
 loop.run_until_complete(orm.create_pool(loop, "../database/sqlite.db"))
 
-u = User(name='Test', email='test@example.com', password='1234567890', image='about:blank')
-
-loop.run_until_complete(u.save())
+for i in range(5, 10):
+    u = User(name='Test' + str(i), email='test' + str(i) + '@example.com', password='1234567890', image='about:blank')
+    loop.run_until_complete(u.save_data())
