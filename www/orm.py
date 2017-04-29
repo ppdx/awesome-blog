@@ -90,9 +90,9 @@ class StandardError(Exception):
 
 
 class ModelMetaclass(type):
-    def __new__(cls, name, bases, attrs):
+    def __new__(mcs, name, bases, attrs):
         if name == "Model":
-            return type.__new__(cls, name, bases, attrs)
+            return type.__new__(mcs, name, bases, attrs)
         table_name = attrs.get("__table__", None) or name
         logging.info("found model: %s (table: %s)", name, table_name)
         mappings = {}
@@ -124,7 +124,10 @@ class ModelMetaclass(type):
                 table_name, ', '.join(["`{}`=?".format(mappings.get(field).name or field) for field in fields]),
                 primary_key)
         attrs["__delete__"] = "delete from `{}` where `{}`=?".format(table_name, primary_key)
-        return type.__new__(cls, name, bases, attrs)
+        return type.__new__(mcs, name, bases, attrs)
+
+    def __init__(cls, name, bases, attrs):
+        super(ModelMetaclass, cls).__init__(name, bases, attrs)
 
 
 class Model(dict, metaclass=ModelMetaclass):
@@ -181,8 +184,13 @@ class Model(dict, metaclass=ModelMetaclass):
                 args.extend(limit)
             else:
                 raise ValueError("Invalid limit value: %s", str(limit))
-        ret = await select(" ".join(sql), args)
-        return [cls(**v) for v in ret]
+        ret = []
+        for row in await select(" ".join(sql), args):
+            kwargs = {}
+            for i, field in enumerate(row.cursor_description):
+                kwargs[field[0]] = row[i]
+            ret.append(cls(**kwargs))
+        return ret
 
     @classmethod
     async def find_number(cls, select_field, where: str = None, args: list = None):
