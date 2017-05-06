@@ -15,7 +15,8 @@ async def create_pool(loop, database: str):
     logging.info("create database connection pool...")
     global _pool
     # 需要安装SQLite ODBC驱动 http://www.ch-werner.de/sqliteodbc/
-    _pool = await aioodbc.create_pool(dsn="DRIVER={SQLite3 ODBC Driver};Database=" + database, loop=loop)
+    _pool = await aioodbc.create_pool(dsn="DRIVER={SQLite3 ODBC Driver};Database=" + database, loop=loop,
+                                      autocommit=True)
 
 
 async def select(sql, args, size=None):
@@ -36,11 +37,11 @@ async def execute(sql, args):
             async with conn.cursor() as cur:
                 await cur.execute(sql, args)
                 affected = cur.rowcount
-                await conn.commit()
+                # await conn.commit()
+                return affected
         except:
             await conn.rollback()
             raise
-    return affected
 
 
 def create_args_string(num):
