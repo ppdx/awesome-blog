@@ -13,6 +13,7 @@ from jinja2 import Environment, FileSystemLoader
 
 from www import orm
 from www.coroweb import add_routes, add_static
+from www.handlers import COOKIE_NAME, cookie2user
 
 logging.basicConfig(level=logging.INFO)
 
@@ -42,6 +43,23 @@ async def logger_factory(app, handler):
         return await handler(request)
 
     return logger
+
+
+async def auth_factory(app, handler):
+    async def auth(request):
+        logging.info("check user: %s %s", request.method, request.path)
+        request.__user__ = None
+        cookie = request.cookies.get(COOKIE_NAME)
+        if cookie:
+            user = await cookie2user(cookie)
+            if user:
+                logging.info("set current user: %s", user.email)
+                request.__user__ = user
+        if request.path.startswith("/manage/") and (request.__user__ is None or not request.__user__.admin):
+            return web.HTTPFound("/login")
+        return await handler(request)
+
+    return auth
 
 
 async def data_factory(app, handler):
@@ -79,6 +97,7 @@ async def response_factory(app, handler):
                         body=json.dumps(resp, ensure_ascii=False, default=lambda obj: obj.__dict__).encode())
                 resp.content_type = "application/json;charset=utf-8"
             else:
+                resp["__user__"] = request.__user__
                 resp = web.Response(body=app["__templating__"].get_template(template).render(**resp).encode())
                 resp.content_type = "text/html;charset=utf-8"
         elif isinstance(resp, int) and 100 <= resp < 600:
@@ -110,7 +129,7 @@ def datetime_filter(t):
 async def init():
     await orm.create_pool(loop, "../database/sqlite.db")
     app = web.Application(loop=loop, middlewares=[
-        logger_factory, response_factory
+        logger_factory, auth_factory, response_factory
     ])
     init_jinja2(app, filters={"datetime": datetime_filter})
     add_routes(app, "handlers")

@@ -1,4 +1,5 @@
 import asyncio
+from pprint import pprint
 
 import aioodbc
 
@@ -11,9 +12,9 @@ async def test_example():
     async with aioodbc.create_pool(dsn=dsn, loop=loop) as pool:
         async with pool.acquire() as conn:
             async with conn.cursor() as cur:
-                await cur.execute('SELECT 42;')
-                val = await cur.fetchone()
-                print(val)
+                await cur.execute('SELECT * FROM users;')
+                val = await cur.fetchall()
+                pprint(val)
 
 
 loop.run_until_complete(test_example())
