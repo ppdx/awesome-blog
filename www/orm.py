@@ -207,7 +207,14 @@ class Model(dict, metaclass=ModelMetaclass):
     async def find(cls, primary_key):
         """find object by primary key"""
         ret = await select("{} where `{}`=?".format(cls.__select__, cls.__primary_key__), [primary_key], 1)
-        return cls(**ret[0]) if len(ret) else None
+        if len(ret) == 0:
+            return None
+        else:
+            row = ret[0]
+            kwargs = {}
+            for i, field in enumerate(row.cursor_description):
+                kwargs[field[0]] = row[i]
+            return cls(**kwargs)
 
     async def save_data(self):
         args = [self.get_value_or_default(field) for field in self.__fields__]

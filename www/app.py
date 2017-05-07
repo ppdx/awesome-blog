@@ -99,7 +99,7 @@ async def response_factory(app, handler):
                         body=json.dumps(resp, ensure_ascii=False, default=lambda obj: obj.__dict__).encode())
                 resp.content_type = "application/json;charset=utf-8"
             else:
-                # resp["__user__"] = request.__user__
+                resp["__user__"] = request.__user__
                 resp = web.Response(body=app["__templating__"].get_template(template).render(**resp).encode())
                 resp.content_type = "text/html;charset=utf-8"
         elif isinstance(resp, int) and 100 <= resp < 600:
@@ -131,7 +131,7 @@ def datetime_filter(t):
 async def init():
     await orm.create_pool(loop, "../database/sqlite.db")
     app = web.Application(loop=loop, middlewares=[
-        logger_factory, data_factory, response_factory
+        logger_factory, auth_factory, data_factory, response_factory
     ])
     init_jinja2(app, filters={"datetime": datetime_filter})
     add_routes(app, "handlers")
