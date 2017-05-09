@@ -1,5 +1,36 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+import math
+
+
+class Page:
+    def __init__(self, item_count, page_index=1, page_size=10):
+        self.item_count = item_count
+        self.page_size = page_size
+        self.page_count = int(math.ceil(item_count / page_size))
+        if item_count == 0 or page_index > self.page_count:
+            self.page_index = 1
+            self.offset = 0
+            self.limit = 0
+        else:
+            self.page_index = page_index
+            self.offset = page_size * (page_index - 1)
+            self.limit = self.page_size
+
+    @property
+    def has_next(self):
+        return self.page_index < self.page_count
+
+    @property
+    def has_previous(self):
+        return self.page_index > 1
+
+    def __str__(self):
+        return "item count: {}, page count: {}, page index: {}, page size: {}, offset: {}, limit: {}".format(
+                self.item_count, self.page_count, self.page_index, self.page_size, self.offset, self.limit
+        )
+
+    __repr__ = __str__
 
 
 class APIError(Exception):

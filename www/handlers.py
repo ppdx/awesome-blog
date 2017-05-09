@@ -138,6 +138,14 @@ def signout(request):
     return response
 
 
+@get("/manage/blogs")
+def manage(*, page="1"):
+    return {
+        "__template__": "manage_blogs.html",
+        "page_index":   get_page_index(page)
+    }
+
+
 @get("/manage/blogs/create")
 def manage_create_blog():
     return {
@@ -179,6 +187,12 @@ async def api_register_user(*, email, name, password):
     response.content_type = 'application/json'
     response.body = json.dumps(user, ensure_ascii=False).encode('utf-8')
     return response
+
+
+@get("/api/blogs")
+def api_blogs(*, page="1"):
+    page_index = get_page_index(page)
+    page_count = yield from Blog.find_number("count(id)")
 
 
 @get("/api/blogs/{id}")
