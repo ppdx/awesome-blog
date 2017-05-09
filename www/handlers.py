@@ -10,7 +10,7 @@ import time
 from aiohttp import web
 
 from www import markdown2
-from www.apis import APIValueError, APIError, APIPermissionError
+from www.apis import APIValueError, APIError, APIPermissionError, Page
 from www.config import configs
 from www.coroweb import get, post
 from www.models import Blog, User, next_id, Comment
@@ -190,9 +190,12 @@ async def api_register_user(*, email, name, password):
 
 
 @get("/api/blogs")
-def api_blogs(*, page="1"):
+async def api_blogs(*, page="1"):
     page_index = get_page_index(page)
-    page_count = yield from Blog.find_number("count(id)")
+    page_count = await Blog.find_number("count(id)")
+    page = Page(page_count, page_index)
+    blogs = await Blog.find_all(orderBy="created_at desc", limit=(page.offset, page.limit)) if page_count != 0 else []
+    return {"page": page, "blogs": blogs}
 
 
 @get("/api/blogs/{id}")
