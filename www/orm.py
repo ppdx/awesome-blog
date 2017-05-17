@@ -201,7 +201,7 @@ class Model(dict, metaclass=ModelMetaclass):
             sql.append("where")
             sql.append(where)
         ret = await select(" ".join(sql), args, 1)
-        return ret[0]["_num_"] if len(ret) else None
+        return ret[0][0] if len(ret) else None
 
     @classmethod
     async def find(cls, primary_key):

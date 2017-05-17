@@ -195,6 +195,13 @@ async def api_blogs(*, page="1"):
     page_count = await Blog.find_number("count(id)")
     page = Page(page_count, page_index)
     blogs = await Blog.find_all(orderBy="created_at desc", limit=(page.offset, page.limit)) if page_count != 0 else []
+    for blog in blogs:
+        user = await User.find(blog.user_id)
+        user.password = '********'
+        setattr(blog, "user", user)
+
+
+
     return {"page": page, "blogs": blogs}
 
 
