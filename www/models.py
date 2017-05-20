@@ -22,6 +22,9 @@ class User(Model):
     image = StringField(ddl="varchar(500)")
     created_at = FloatField(default=time.time)
 
+    def shadow_password(self):
+        self.password = "********"
+
 
 class Blog(Model):
     __table__ = "blogs"
